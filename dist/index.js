@@ -53,17 +53,30 @@ function run() {
             const inputs = {
                 token: core.getInput('token'),
                 repository: core.getInput('repository'),
-                comment: core.getInput('comment')
+                comment: core.getInput('comment'),
+                prNumber: Number(core.getInput('pr-number'))
             };
             core.debug(`Inputs: ${(0, util_1.inspect)(inputs)}`);
             const [owner, repo] = inputs.repository.split('/');
             core.debug(`Repo: ${(0, util_1.inspect)(repo)}`);
             const octokit = github.getOctokit(inputs.token);
-            const { data: pulls } = yield octokit.rest.pulls.list({
-                owner: owner,
-                repo: repo,
-                state: 'open'
-            });
+            let pulls;
+            if (Number.isInteger(inputs.prNumber) && inputs.prNumber > 0) {
+                const { data: pull } = yield octokit.rest.pulls.get({
+                    owner,
+                    repo,
+                    pull_number: inputs.prNumber
+                });
+                pulls = [pull];
+            }
+            else {
+                const { data } = yield octokit.rest.pulls.list({
+                    owner: owner,
+                    repo: repo,
+                    state: 'open'
+                });
+                pulls = data;
+            }
             core.debug(`Pulls: ${(0, util_1.inspect)(pulls)}`);
             let closedCount = 0;
             for (const pull of pulls) {
